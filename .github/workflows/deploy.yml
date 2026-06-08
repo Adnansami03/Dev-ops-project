@@ -9,10 +9,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v2
+      uses: aws-actions/configure-aws-credentials@v4
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -42,7 +45,12 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+          # Use microk8s/kubectl with standard home config paths to prevent connection refused errors
+          export KUBECONFIG=$HOME/.kube/config
+          
+          # Download the latest deployment configuration file
           curl -s https://raw.githubusercontent.com/${{ github.repository }}/main/k8s-deployment.yaml -o k8s-deployment.yaml
-          kubectl apply -f k8s-deployment.yaml
-          kubectl rollout restart deployment/node-app-deployment
+          
+          # Run the kubernetes deployment updates
+          sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/home/ubuntu/.kube/config
+          sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/home/ubuntu/.kube/config
