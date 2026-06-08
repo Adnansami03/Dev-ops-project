@@ -45,17 +45,9 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Download the latest deployment configuration file
+          # Pull down your fresh deployment layout directly from your github branch
           curl -s https://raw.githubusercontent.com/${{ github.repository }}/main/k8s-deployment.yaml -o k8s-deployment.yaml
           
-          # Run the kubernetes deployment updates using root or administrative configurations dynamically
-          if [ -f "/home/ubuntu/.kube/config" ]; then
-            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/home/ubuntu/.kube/config
-            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/home/ubuntu/.kube/config
-          elif [ -f "/root/.kube/config" ]; then
-            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/root/.kube/config
-            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/root/.kube/config
-          else
-            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml
-            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment
-          fi
+          # Force execute kubectl deployment commands directly using default local user mappings
+          kubectl apply -f k8s-deployment.yaml || sudo kubectl apply -f k8s-deployment.yaml --allow-privileged
+          kubectl rollout restart deployment/node-app-deployment || sudo kubectl rollout restart deployment/node-app-deployment --allow-privileged
