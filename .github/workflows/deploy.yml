@@ -45,12 +45,17 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Use microk8s/kubectl with standard home config paths to prevent connection refused errors
-          export KUBECONFIG=$HOME/.kube/config
-          
           # Download the latest deployment configuration file
           curl -s https://raw.githubusercontent.com/${{ github.repository }}/main/k8s-deployment.yaml -o k8s-deployment.yaml
           
-          # Run the kubernetes deployment updates
-          sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/home/ubuntu/.kube/config
-          sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/home/ubuntu/.kube/config
+          # Run the kubernetes deployment updates using root or administrative configurations dynamically
+          if [ -f "/home/ubuntu/.kube/config" ]; then
+            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/home/ubuntu/.kube/config
+            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/home/ubuntu/.kube/config
+          elif [ -f "/root/.kube/config" ]; then
+            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml --kubeconfig=/root/.kube/config
+            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment --kubeconfig=/root/.kube/config
+          else
+            sudo /usr/local/bin/kubectl apply -f k8s-deployment.yaml
+            sudo /usr/local/bin/kubectl rollout restart deployment/node-app-deployment
+          fi
