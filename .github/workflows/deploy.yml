@@ -45,9 +45,9 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Pull down your fresh deployment layout directly from your github branch
+          # Download the latest deployment manifest
           curl -s https://raw.githubusercontent.com/${{ github.repository }}/main/k8s-deployment.yaml -o k8s-deployment.yaml
           
-          # Force execute kubectl deployment commands directly using default local user mappings
-          kubectl apply -f k8s-deployment.yaml || sudo kubectl apply -f k8s-deployment.yaml --allow-privileged
-          kubectl rollout restart deployment/node-app-deployment || sudo kubectl rollout restart deployment/node-app-deployment --allow-privileged
+          # Deploy and restart using the active microk8s engine paths
+          microk8s kubectl apply -f k8s-deployment.yaml
+          microk8s kubectl rollout restart deployment/node-app-deployment
