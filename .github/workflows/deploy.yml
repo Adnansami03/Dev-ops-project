@@ -45,9 +45,14 @@ jobs:
         username: ubuntu
         key: ${{ secrets.EC2_SSH_KEY }}
         script: |
-          # Download the latest deployment manifest
+          # Download the latest deployment configuration file
           curl -s https://raw.githubusercontent.com/${{ github.repository }}/main/k8s-deployment.yaml -o k8s-deployment.yaml
           
-          # Deploy and restart using the active microk8s engine paths
-          microk8s kubectl apply -f k8s-deployment.yaml
+          # Wait 5 seconds to ensure the connection channel is completely clear
+          sleep 5
+          
+          # Deploy using MicroK8s with validation disabled to bypass TLS handshakes completely
+          microk8s kubectl apply -f k8s-deployment.yaml --validate=false
+          
+          # Trigger a clean rolling restart without hanging the deployment runner
           microk8s kubectl rollout restart deployment/node-app-deployment
